@@ -69,9 +69,7 @@ export class AutoCompleteProvider implements CompletionItemProvider {
         // Track context as we go backwards
         let foundJobs = false;
         let foundRuns = false;
-        let insideJob = false;
         let insideSteps = false;
-        let jobName: string | null = null;
 
         // Go backwards line by line
         for (let lineNum = position.line - 1; lineNum >= 0; lineNum--) {
@@ -85,52 +83,41 @@ export class AutoCompleteProvider implements CompletionItemProvider {
                 continue;
             }
 
-            // If we encounter a line with less indentation, we're moving up in hierarchy
-            if (lineIndent < currentLineIndent) {
+            // If we encounter a line with less or equal indentation, we're at same level or moving up
+            if (lineIndent <= currentLineIndent) {
                 const [key, value] = this.parseKeyValue(trimmedLine);
 
                 // Check for exclusion contexts first
                 if (key === WITH || key === ENV) {
-                    return; // Invalid context
+                    return undefined; // Invalid context
                 }
 
                 // Check for steps array
                 if (key === STEPS && this.isArrayStart(value)) {
                     insideSteps = true;
-                    currentLineIndent = lineIndent; // Update reference indentation
-                    continue;
-                }
-
-                // Check for job definitions (under jobs)
-                if (foundJobs && key && !key.includes(' ') && value === undefined) {
-                    jobName = key;
-                    insideJob = true;
                     currentLineIndent = lineIndent;
                     continue;
                 }
 
-                // Check for top-level keys
+                // Check for top-level keys (indentation 0)
                 if (lineIndent === 0) {
                     if (key === JOBS) {
                         foundJobs = true;
-                        if (insideSteps) {
-                            return ACTION;
-                        }
-                        if (insideJob && !insideSteps) {
-                            return WORKFLOW;
-                        }
                     } else if (key === RUNS) {
                         foundRuns = true;
-                        if (insideSteps) return ACTION;
                     }
                 }
 
-                // Update reference indentation for next iteration
                 currentLineIndent = lineIndent;
             }
         }
 
-        return undefined; // No valid context found
+        // Determine context based on what we found
+        if (foundRuns && insideSteps)  return ACTION;   // action inside another action
+        if (foundJobs && insideSteps)  return ACTION;   // action inside a workflow
+        if (foundJobs && !insideSteps) return WORKFLOW; // workflow inside another workflow
+
+        return undefined;
     }
 
     private parseKeyValue(line: string): [string | null, string | undefined] {

@@ -19,7 +19,7 @@ export default [{
             selector: "import",
             format: ["camelCase", "PascalCase"],
         }],
-
+        "no-unused-vars": "error",
         curly: "multi-line",
         eqeqeq: "warn",
         "no-throw-literal": "warn",
