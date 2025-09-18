@@ -1,26 +1,26 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import { ExtensionContext, languages } from 'vscode';
+import { Validator } from './validator';
+import { LocalFileDocumentLinkProvider } from './links';
+import { AutoCompleteProvider } from './autocomplete';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "local-github-actions" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('local-github-actions.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Local Github Actions!');
-	});
-
-	context.subscriptions.push(disposable);
+export function activate(context: ExtensionContext) {
+    Validator.collection = languages.createDiagnosticCollection('local-github-actions');
+    const yamlSelector = {
+        scheme: 'file',
+        pattern: '**/.github/{workflows,actions}/*.{yml,yaml}'
+    };
+    context.subscriptions.push(
+        Validator.collection,
+        languages.registerDocumentLinkProvider(
+            yamlSelector,
+            new LocalFileDocumentLinkProvider()
+        ),
+        languages.registerCompletionItemProvider(
+            yamlSelector, new AutoCompleteProvider()
+        )
+    );
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    Validator.collection = undefined;
+}
