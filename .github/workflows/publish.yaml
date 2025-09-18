@@ -84,11 +84,3 @@ jobs:
           fi
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-      - name: Create / Update GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          prerelease: ${{ startsWith(github.ref_name, 'pre/') }}
-          generateReleaseNotes: true
